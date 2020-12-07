@@ -124,13 +124,23 @@ def viterbi(obs: str) -> (float, str):
     return prob, "".join(path[state])  # 返回概率和状态序列
 
 
-def predict(obs:str)->str:
+def predict(obs: str) -> str:
     sentences = obs.split('，')
     states = ""
     for sent in sentences:
         states += viterbi(sent)[1]
         states += 'S'
     return states[:-1]
+
+
+def segment(obs:str, states:str) -> str:
+    segmented = ""
+    assert len(obs) == len(states), "len(obs) != len(states)!"
+    for i in range(0, len(obs)):
+        segmented += obs[i]
+        if states[i] == 'S' or states[i] == 'E':
+            segmented += '/'
+    return segmented
 
 
 if __name__ == "__main__":
@@ -146,3 +156,4 @@ if __name__ == "__main__":
     #     outputs.append(output)
     outputs = predict(examples[1])
     print(outputs)
+    print(segment(examples[1], outputs))
