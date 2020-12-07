@@ -124,6 +124,15 @@ def viterbi(obs: str) -> (float, str):
     return prob, "".join(path[state])  # 返回概率和状态序列
 
 
+def predict(obs:str)->str:
+    sentences = obs.split('，')
+    states = ""
+    for sent in sentences:
+        states += viterbi(sent)[1]
+        states += 'S'
+    return states[:-1]
+
+
 if __name__ == "__main__":
     train()
     examples = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset/input.utf8", encoding="utf8").readlines()
@@ -135,5 +144,5 @@ if __name__ == "__main__":
     #     output = viterbi(ele)[1]
     #     print(output)
     #     outputs.append(output)
-    outputs = viterbi(examples[1])[1]
+    outputs = predict(examples[1])
     print(outputs)
