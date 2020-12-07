@@ -50,7 +50,6 @@ def test_sum():
     print(sum_of_p)
 
 
-
 def train():
     train_data = open(TRAIN_DATA, encoding='utf-8')
     init()
@@ -92,9 +91,12 @@ def train():
         for word in B_dic[key]:
             B_dic[key][word] /= Count_dic[key]
 
-    # compute average probabilities
+    # # compute average probabilities
+    # for key in Average_dic:
+    #     Average_dic[key] = 1.0 / len(B_dic[key])
+    # compute min probabilities
     for key in Average_dic:
-        Average_dic[key] = 1.0 / len(B_dic[key])
+        Average_dic[key] = min(B_dic[key].values())
     # print(Pi_dic)
     # print(B_dic)
     # print(A_dic)
@@ -107,12 +109,6 @@ def viterbi(obs: str) -> (float, str):
         V[0][y] = Pi_dic[y] * B_dic[y].get(obs[0], Average_dic[y])   # max P(o0,o1,o2...ot,Xt=y), 用get而不是用[]是因为又可能key不存在，此时返回默认值，不能返回0，否则一遇到一个不认识的后面就全部是0了
         path[y] = [y]
     for t in range(1,len(obs)):
-        if t == 110:
-            print(V[t-1])
-            for y in state_list:
-                print(V[t-1]['B'],A_dic['B'][y],B_dic[y].get(obs[t], Average_dic[y]))
-                x = V[t-1]['B'] * A_dic['B'][y] * B_dic[y].get(obs[t], Average_dic[y])
-                print(x)
         V.append({})
         newpath = {}
         for y in state_list:      #从y0 -> y状态的递归
@@ -145,6 +141,7 @@ def segment(obs:str, states:str) -> str:
 
 if __name__ == "__main__":
     train()
+    print(Average_dic)
     examples = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset/input.utf8", encoding="utf8").readlines()
     examples = [ele.strip() for ele in examples]
     # outputs = [viterbi(ele)[1] for ele in examples]
