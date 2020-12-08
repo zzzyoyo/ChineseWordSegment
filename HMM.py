@@ -130,7 +130,7 @@ def viterbi_sum(obs: str) -> (float, str):
         V.append({})
         newpath = {}
         for y in state_list:      #从y0 -> y状态的递归
-            (prob, state) = max([(V[t-1][y0] + A_dic[y0][y] + B_dic[y].get(obs[t], Average_dic[y]), y0) for y0 in state_list if V[t - 1][y0] > 0])
+            (prob, state) = max([(V[t-1][y0] + A_dic[y0][y] + B_dic[y].get(obs[t], Average_dic[y]), y0) for y0 in state_list])
             V[t][y] =prob
             newpath[y] = path[state] + [y]
         path = newpath  #记录状态序列
@@ -157,6 +157,17 @@ def segment(obs:str, states:str) -> str:
     return segmented
 
 
+def change_to_log():
+    for key in B_dic:
+        for key1 in B_dic[key]:
+            B_dic[key][key1] = math.log(B_dic[key][key1]) if B_dic[key][key1] > 0 else float(-2 ** 31)
+    for key in A_dic:
+        for key1 in A_dic[key]:
+            A_dic[key][key1] = math.log(A_dic[key][key1]) if A_dic[key][key1] > 0 else float(-2 ** 31)
+    for key in Pi_dic:
+        Pi_dic[key] = math.log(Pi_dic[key]) if Pi_dic[key] > 0 else float(-2 ** 31)
+
+
 if __name__ == "__main__":
     train()
     print(Average_dic)
@@ -170,6 +181,7 @@ if __name__ == "__main__":
     #     print(output)
     #     outputs.append(output)
     # outputs = predict(examples[1])
+    change_to_log()
     outputs = viterbi_sum(examples[1])[1]
     print(outputs)
     print(segment(examples[1], outputs))
