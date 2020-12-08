@@ -180,8 +180,8 @@ if __name__ == "__main__":
     #     output = viterbi(ele)[1]
     #     print(output)
     #     outputs.append(output)
-    # outputs = predict(examples[1])
-    change_to_log()
-    outputs = viterbi_sum(examples[1])[1]
+    outputs = predict(examples[1])
+    # change_to_log()
+    # outputs = viterbi_sum(examples[1])[1]
     print(outputs)
     print(segment(examples[1], outputs))

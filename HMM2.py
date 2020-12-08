@@ -1,3 +1,5 @@
+import math
+
 TRAIN_DATA = "E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8"
 LABELS = "E:\大三上\智能系统\LAB2\dataset\dataset1\labels.utf8"
 
@@ -51,7 +53,7 @@ def test_sum():
     print(sum_of_p)
 
 
-def train():
+def train(log: bool):
     train_data = open(TRAIN_DATA, encoding='utf-8')
     init()
     line_num = 0
@@ -96,6 +98,10 @@ def train():
             for word in B_dic[key][key1]:
                 B_dic[key][key1][word] /= Prev_Curr_dic[key][key1]
 
+    # 取对数
+    if log:
+        change_to_log()
+
     # compute min probabilities
     for key in Min_dic:
         for key1 in Min_dic[key]:
@@ -126,14 +132,36 @@ def viterbi(obs:str) -> (float, str):
     return prob, state_str
 
 
-def predict(obs: str) -> str:
-    sentences = obs.split('，')
-    states = ""
-    for sent in sentences:
-        print(viterbi(sent)[0])
-        states += viterbi(sent)[1]
-        states += 'S'
-    return states[:-1]
+def viterbi_sum(obs:str) -> (float, str):
+    V = [{}]
+    Path = []
+    for key in state_list:
+        V[0][key] = Pi_dic[key]
+    for t in range(1, len(obs) + 1):
+        V.append({})
+        Path.append({})
+        for key in state_list:
+            (prob, last_state) = max([(V[t-1][y0] + A_dic[y0][key] + B_dic[y0][key].get(obs[t-1], Min_dic[y0][key]), y0) for y0 in state_list ])
+            V[t][key] = prob
+            Path[t-1][key] = last_state  # 令state(t)为key的概率最大的state(t-1)
+    (prob, state) = max([(V[len(obs)][y], y) for y in state_list])
+    state_str = ""
+    for t in range(len(obs)-1, -1, -1):
+        state_str = Path[t][state] + state_str
+        state = Path[t][state]  # 令当前状态的概率最大的上一个状态
+    return prob, state_str
+
+
+def predict(obs: str, log: bool) -> str:
+    if log:
+        return viterbi_sum(obs)[1]
+    else:
+        sentences = obs.split('，')
+        states = ""
+        for sent in sentences:
+            states += viterbi(sent)[1]
+            states += 'S'
+        return states[:-1]
 
 
 def segment(obs:str, states:str) -> str:
@@ -146,10 +174,23 @@ def segment(obs:str, states:str) -> str:
     return segmented
 
 
+def change_to_log():
+    for key in B_dic:
+        for key1 in B_dic[key]:
+            for word in B_dic[key][key1]:
+                B_dic[key][key1][word] = math.log(B_dic[key][key1][word]) if B_dic[key][key1][word] > 0 else float(-2 ** 31)
+
+    for key in A_dic:
+        for key1 in A_dic[key]:
+            A_dic[key][key1] = math.log(A_dic[key][key1]) if A_dic[key][key1] > 0 else float(-2 ** 31)
+    for key in Pi_dic:
+        Pi_dic[key] = math.log(Pi_dic[key]) if Pi_dic[key] > 0 else float(-2 ** 31)
+
+
 if __name__ == "__main__":
-    train()
+    train(True)
     examples = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset/input.utf8", encoding="utf8").readlines()
     examples = [ele.strip() for ele in examples]
-    outputs = predict(examples[1])
+    outputs = predict(examples[1], True)
     print(outputs)
     print(segment(examples[1], outputs))
