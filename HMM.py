@@ -1,4 +1,4 @@
-from typing import List
+import math
 
 TRAIN_DATA = "E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8"
 LABELS = "E:\大三上\智能系统\LAB2\dataset\dataset1\labels.utf8"
@@ -120,6 +120,24 @@ def viterbi(obs: str) -> (float, str):
     return prob, "".join(path[state])  # 返回概率和状态序列
 
 
+def viterbi_sum(obs: str) -> (float, str):
+    V = [{}]
+    path = {}
+    for y in state_list:   #初始值
+        V[0][y] = Pi_dic[y] + B_dic[y].get(obs[0], Average_dic[y])   # max P(o0,o1,o2...ot,Xt=y), 用get而不是用[]是因为又可能key不存在，此时返回默认值，不能返回0，否则一遇到一个不认识的后面就全部是0了
+        path[y] = [y]
+    for t in range(1,len(obs)):
+        V.append({})
+        newpath = {}
+        for y in state_list:      #从y0 -> y状态的递归
+            (prob, state) = max([(V[t-1][y0] + A_dic[y0][y] + B_dic[y].get(obs[t], Average_dic[y]), y0) for y0 in state_list if V[t - 1][y0] > 0])
+            V[t][y] =prob
+            newpath[y] = path[state] + [y]
+        path = newpath  #记录状态序列
+    (prob, state) = max([(V[len(obs) - 1][y], y) for y in state_list])  #在最后一个位置，以y状态为末尾的状态序列的最大概率
+    return prob, "".join(path[state])  # 返回概率和状态序列
+
+
 def predict(obs: str) -> str:
     sentences = obs.split('，')
     states = ""
@@ -151,6 +169,7 @@ if __name__ == "__main__":
     #     output = viterbi(ele)[1]
     #     print(output)
     #     outputs.append(output)
-    outputs = predict(examples[1])
+    # outputs = predict(examples[1])
+    outputs = viterbi_sum(examples[1])[1]
     print(outputs)
     print(segment(examples[1], outputs))
