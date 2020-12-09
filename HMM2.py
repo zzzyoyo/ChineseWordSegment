@@ -85,7 +85,7 @@ def train(log: bool):
             last_state = pair[1]
             last_obs = pair[0]
     line_num += 1  # 最后一句没有一个空行作为结尾，因此还要加一才是句子的数量
-    # print("totally ", line_num, " lines.")
+    print("totally ", line_num, " lines.")
 
     # 归一化
     for key in Pi_dic:
