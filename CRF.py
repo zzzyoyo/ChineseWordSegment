@@ -1,18 +1,31 @@
-TRAIN_DATA = "E:\大三上\智能系统\LAB2\dataset\dataset2\\train.utf8"
+import matplotlib.pyplot as plt
+import numpy as np
+import time
+
+TRAIN_DATA1 = "E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8"
+TRAIN_DATA2 = "E:\大三上\智能系统\LAB2\dataset\dataset2\\train.utf8"
 LABELS = "E:\大三上\智能系统\LAB2\dataset\dataset1\labels.utf8"
-TEMPLATES = "E:\大三上\智能系统\LAB2\dataset\dataset1\\template.utf8"
+TEMPLATES = "E:\源程序\PycharmProjects\lab2\\template.utf8"
+VALID_DATA = "E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8"
+GOLD = "E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8"
 
 unigram_template = []
 bigram_template = []
 state_list = []
 weights_dic = {}
 epochs = 5
+examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
+golds = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+examples = [ele.strip() for ele in examples]
+golds = [ele.strip() for ele in golds]
 
 
 def init():
     # read templates
     tf = open(TEMPLATES, encoding='utf-8')
     for template_str in tf:
+        if template_str[0] == '#':
+            continue
         start_index = 0
         template_num = []
         #  找到每一个[]里面的第一个数字
@@ -20,13 +33,13 @@ def init():
             start_index = template_str.find("[", start_index + 1)
             if start_index != -1:
                 end_index = template_str.find(",", start_index)
-                template_num.append(int(template_str[start_index+1: end_index]))
+                template_num.append(int(template_str[start_index + 1: end_index]))
         if len(template_num) > 0:
             # 将这一行的特征模板加入templates
             if template_str[0] == 'U':
                 # Unigram
                 unigram_template.append(template_num)
-            else:
+            elif template_str[0] == 'B':
                 # bigram
                 bigram_template.append(template_num)
 
@@ -137,9 +150,16 @@ def train_a_sentence(sentence:str, ref_states:str) -> (int, str):
 
 
 def train():
-    init()
-    (sentences, references) = read_dataset()
+    # (sentences, references) = read_dataset(TRAIN_DATA1)
+    (sentences, references) = read_dataset(TRAIN_DATA2)
+    # 两个dataset一起用
+    # (s2, r2) = read_dataset(TRAIN_DATA2)
+    # sentences[len(sentences):len(sentences)] = s2
+    # references[len(references):len(references)] = r2
     assert len(sentences) == len(references), "len(sentences) != len(references)!!"
+    train_accs = []
+    valid_accs = []
+    start = time.time()
     for epoch in range(0, epochs):
         wrong_num = 0
         total_test = 0
@@ -150,24 +170,37 @@ def train():
             total_test += len(sentence)
             n, predict_states = train_a_sentence(sentence, states)
             wrong_num += n
-            if i % 1000 == 0:
-                print("第",i,"行")
-                print(sentence)
-                print("given:")
-                print(segment(sentence, states))
-                print("predict")
-                print(segment(sentence, predict_states))
-        print("epoch ", epoch, "accuracy=", (1 - wrong_num/total_test))
-    print("finish training")
+            # if i % 1000 == 0:
+            #     print("第",i,"行")
+            #     print(sentence)
+            #     print("given:")
+            #     print(segment(sentence, states))
+            #     print("predict")
+            #     print(segment(sentence, predict_states))
+        ta = 1 - (wrong_num/total_test)
+        train_accs.append(ta)
+        va = test()
+        valid_accs.append(va)
+        print("epoch ", epoch, "train accuracy=", ta, "valid accuracy=", va)
+    end = time.time()
+    print("finish training, time:", (end-start)/60, "min")
+    xx = np.linspace(0, epochs-1, epochs)
+    plt.xlabel("epoch")
+    plt.ylabel("accuracy")
+    plt.title("CRF accuracy-epoch")
+    plt.plot(xx, train_accs, label="train_accs")
+    plt.plot(xx, valid_accs, label="valid_accs")
+    plt.legend()
+    plt.show()
     # save_arguments()
 
 
-def read_dataset() -> ([str], [str]):
+def read_dataset(path:str) -> ([str], [str]):
     sentences = []
     references = []
     sentence = ""
     states = ""
-    train_data = open(TRAIN_DATA, encoding='utf-8')
+    train_data = open(path, encoding='utf-8')
     for line in train_data:
         line = line.strip()
         if not line:
@@ -196,12 +229,18 @@ def segment(obs:str, states:str) -> str:
     return segmented
 
 
-def test():
-    examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
-    examples = [ele.strip() for ele in examples]
-    for i in range(0, 3):
+def test()->float:
+    corr = 0
+    total = 0
+    for i in range(0, len(examples)):
         outputs = viterbi(examples[i])
+        corr += sum([1 if a == b else 0 for a, b in zip(golds[i], outputs)])
+        total += len(outputs)
+        print("given:")
+        print(segment(examples[i], golds[i]))
+        print("predict:")
         print(segment(examples[i], outputs))
+    return corr/total
 
 
 def save_arguments():
@@ -239,10 +278,14 @@ def load_arguments():
 
 
 if __name__ == "__main__":
+    # load_arguments()
+    # print("load successfully")
+    init()
     train()
     test()
     save_arguments()
     print("save successfully")
-    load_arguments()
-    print("load successfully")
-    test()
+    # load_arguments()
+    # print("load successfully")
+    # test()
+

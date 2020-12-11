@@ -1,6 +1,7 @@
 import math
 
-TRAIN_DATA = "E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8"
+TRAIN_DATA1 = "E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8"
+TRAIN_DATA2 = "E:\大三上\智能系统\LAB2\dataset\dataset2\\train.utf8"
 LABELS = "E:\大三上\智能系统\LAB2\dataset\dataset1\labels.utf8"
 
 state_list = []
@@ -54,7 +55,9 @@ def test_sum():
 
 
 def train(log: bool):
-    train_data = open(TRAIN_DATA, encoding='utf-8')
+    train_data = open(TRAIN_DATA1, encoding='utf-8').readlines()
+    # 第二个数据集也读进来
+    train_data[len(train_data):len(train_data)] = open(TRAIN_DATA2, encoding='utf-8').readlines()
     init()
     line_num = 0
     last_state = None  # last state of current position, None if it's in start of a line
@@ -187,10 +190,20 @@ def change_to_log():
         Pi_dic[key] = math.log(Pi_dic[key]) if Pi_dic[key] > 0 else float(-2 ** 31)
 
 
-if __name__ == "__main__":
-    train(True)
-    examples = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset/input.utf8", encoding="utf8").readlines()
+def test():
+    examples = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
     examples = [ele.strip() for ele in examples]
-    outputs = predict(examples[1], True)
-    print(outputs)
-    print(segment(examples[1], outputs))
+    golds = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+    golds = [ele.strip() for ele in golds]
+    for i in range(0, len(examples)):
+        output = predict(examples[i], True)
+        print("given:")
+        print(segment(examples[i], golds[i]))
+        print("predict:")
+        print(segment(examples[i], output))
+
+
+if __name__ == "__main__":
+    # HMM训练速度很快，可以当场train
+    train(True)
+    test()
