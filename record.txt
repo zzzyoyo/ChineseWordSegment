@@ -74,3 +74,9 @@ train accuracy= 0.9967145735482941 valid accuracy= 0.9047013977128335 time: 28.5
 2.if else赋值的优先级搞错了，忘记加括号了
 更改之后dataset2-epoch5的结果：
 train accuracy= 0.9940104664299818 valid accuracy= 0.9135959339263025 time: 59.55414261817932 min
+--------------------------------
+dataset1&2-epoch5
+train accuracy= 0.9886820513021742 valid accuracy= 0.9167725540025413 time: 101.8819166302681 min
+--------------------------------
+BILSTM_CRF dataset1 epoch = 1
+50min

@@ -150,12 +150,12 @@ def train_a_sentence(sentence:str, ref_states:str) -> (int, str):
 
 
 def train():
-    # (sentences, references) = read_dataset(TRAIN_DATA1)
-    (sentences, references) = read_dataset(TRAIN_DATA2)
+    (sentences, references) = read_dataset(TRAIN_DATA1)
+    # (sentences, references) = read_dataset(TRAIN_DATA2)
     # 两个dataset一起用
-    # (s2, r2) = read_dataset(TRAIN_DATA2)
-    # sentences[len(sentences):len(sentences)] = s2
-    # references[len(references):len(references)] = r2
+    (s2, r2) = read_dataset(TRAIN_DATA2)
+    sentences[len(sentences):len(sentences)] = s2
+    references[len(references):len(references)] = r2
     assert len(sentences) == len(references), "len(sentences) != len(references)!!"
     train_accs = []
     valid_accs = []
@@ -215,6 +215,7 @@ def read_dataset(path:str) -> ([str], [str]):
             assert len(line) == 3, "len(line) != 3"
             sentence += line[0]
             states += line[2]
+    train_data.close()
     print("finish read dataset, ", len(sentences), " lines totally")
     return sentences, references
 
