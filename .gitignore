@@ -3,3 +3,7 @@ main.py
 template.utf8
 train.utf8
 venv/
+bigram_template.txt
+state_list.txt
+unigram_template.txt
+weights_dic.txt
