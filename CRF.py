@@ -134,14 +134,14 @@ def train_a_sentence(sentence:str, ref_states:str) -> (int, str):
 
             # update bigram_template, wrong predict --, ref ++
             for t in range(0, len(bigram_template)):
-                feature_key = generate_feature_key(unigram_template[t], t, sentence, i,
-                                                   " " if i == 0 else pred_states[i-1] + pred_state)
+                feature_key = generate_feature_key(bigram_template[t], t, sentence, i,
+                                                   (" " if i == 0 else pred_states[i-1]) + pred_state)
                 if feature_key in weights_dic:
                     weights_dic[feature_key] -= 1
                 else:
                     weights_dic[feature_key] = -1
-                feature_key = generate_feature_key(unigram_template[t], t, sentence, i,
-                                                   " " if i == 0 else ref_states[i-1] + ref_state)
+                feature_key = generate_feature_key(bigram_template[t], t, sentence, i,
+                                                   (" " if i == 0 else ref_states[i-1]) + ref_state)
                 if feature_key in weights_dic:
                     weights_dic[feature_key] += 1
                 else:

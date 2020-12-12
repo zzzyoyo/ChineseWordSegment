@@ -59,3 +59,18 @@ train accuracy= 0.8706735459473595 valid accuracy= 0.7992376111817027 time: 27.6
 只留下006之后的模板
 dataset2-epoch5-template4
 train accuracy= 0.9968801858612678 valid accuracy= 0.9040660736975857 time: 29.19031368494034 min
+-------------------------------
+只留下5,7,8,9
+dataset2-epoch5-template5
+train accuracy= 0.9969003007170946 valid accuracy= 0.8856416772554002 time: 28.41412031253179 min
+U6很重要
+-------------------------------
+只留下5,6,8,9
+dataset2-epoch5-template6
+train accuracy= 0.9967145735482941 valid accuracy= 0.9047013977128335 time: 28.55057655175527 min
+-------------------------------
+在train_a_sentence方法里发现两处代码错误
+1.更新bigram的时候用的是unigram的模板
+2.if else赋值的优先级搞错了，忘记加括号了
+更改之后dataset2-epoch5的结果：
+train accuracy= 0.9940104664299818 valid accuracy= 0.9135959339263025 time: 59.55414261817932 min
