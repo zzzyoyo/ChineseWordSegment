@@ -5,6 +5,7 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.optim as optim
 import time
+import pickle
 
 torch.manual_seed(1)
 
@@ -15,7 +16,7 @@ def argmax(vec):
     return idx.item()
 
 
-def prepare_sequence(seq, to_ix):
+def prepare_sequence(seq: list, to_ix: dict):
     idxs = [to_ix[w] for w in seq]
     return torch.tensor(idxs, dtype=torch.long)
 
@@ -185,11 +186,119 @@ class BiLSTM_CRF(nn.Module):
 
     def forward(self, sentence):  # dont confuse this with _forward_alg above.
         # Get the emission scores from the BiLSTM
-        lstm_feats = self._get_lstm_features(sentence)
+        lstm_feats = self._get_lstm_features(sentence)  # (len(sentence), len(tag_to_ix))
 
         # Find the best path, given the features.
         score, tag_seq = self._viterbi_decode(lstm_feats)
         return score, tag_seq
+
+
+def train():
+    training_data = read_train_data(r"E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8")[0:100]
+    print(training_data)
+    for sentence, tags in training_data:
+        for word in sentence:
+            if word not in word_to_ix:
+                word_to_ix[word] = len(word_to_ix)
+
+    global model
+    model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+
+    # Check predictions before training
+    with torch.no_grad():
+        precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
+        precheck_tags = torch.tensor([tag_to_ix[t] for t in training_data[0][1]], dtype=torch.long)
+        print(model(precheck_sent))
+    start = time.time()
+    # Make sure prepare_sequence from earlier in the LSTM section is loaded
+    for epoch in range(
+            10):  # again, normally you would NOT do 300 epochs, it is toy data
+        print("epoch", epoch)
+        test()
+        for sentence, tags in training_data:
+            # Step 1. Remember that Pytorch accumulates gradients.
+            # We need to clear them out before each instance
+            model.zero_grad()
+
+            # Step 2. Get our inputs ready for the network, that is,
+            # turn them into Tensors of word indices.
+            sentence_in = prepare_sequence(sentence, word_to_ix)
+            targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
+
+            # Step 3. Run our forward pass.
+            loss = model.neg_log_likelihood(sentence_in, targets)
+
+            # Step 4. Compute the loss, gradients, and update the parameters by
+            # calling optimizer.step()
+            loss.backward()
+            optimizer.step()
+    end = time.time()
+    print("time:", (end - start) / 60, "min")
+    # Check predictions after training
+    test()
+    with torch.no_grad():
+        precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
+        print(model(precheck_sent))
+    # We got it!
+    save_argument()
+
+
+def save_argument():
+    write_file = open(r'E:\大三上\智能系统\LAB2\lab2_submission\wordseg\LSTM argument\model.pkl', 'wb')
+    pickle.dump(model, write_file, -1)
+    write_file.close()
+    write_file = open(r'E:\大三上\智能系统\LAB2\lab2_submission\wordseg\LSTM argument\dictionary.pkl', 'wb')
+    pickle.dump(word_to_ix, write_file, -1)
+    write_file.close()
+
+
+def load_argument():
+    global word_to_ix
+    global model
+    model_file = open(r'E:\大三上\智能系统\LAB2\lab2_submission\wordseg\LSTM argument\model.pkl', 'rb')
+    model = pickle.load(model_file)
+    model_file.close()
+    model_file = open(r'E:\大三上\智能系统\LAB2\lab2_submission\wordseg\LSTM argument\dictionary.pkl', 'rb')
+    word_to_ix = pickle.load(model_file)
+    model_file.close()
+
+
+def predict(sentence: str) -> str:
+    sent_list = list(sentence)
+    with torch.no_grad():
+        precheck_sent = prepare_sequence(sent_list, word_to_ix)
+        _, tag_list = model(precheck_sent)
+    tag_str = "".join([ix_to_tag[tag_ix] for tag_ix in tag_list])
+    return tag_str
+
+
+def test() -> float:
+    corr = 0
+    total = 0
+    for i in range(0, len(examples)):
+        outputs = predict(examples[i])
+        corr += sum([1 if a == b else 0 for a, b in zip(golds[i], outputs)])
+        total += len(outputs)
+        print("given:")
+        print(segment(examples[i], golds[i]))
+        print("predict:")
+        print(segment(examples[i], outputs))
+    # sen = "我爱北京天安门"
+    # pre = predict(sen)
+    # corr += sum([1 if a == b else 0 for a, b in zip("SSBEBIE", pre)])
+    # total += len(pre)
+    return corr / total
+
+
+def segment(obs:str, states:str) -> str:
+    segmented = ""
+    assert len(obs) == len(states), "len(obs) != len(states)!"
+    for i in range(0, len(obs)):
+        segmented += obs[i]
+        if states[i] == 'S' or states[i] == 'E':
+            segmented += '/'
+    return segmented
 
 
 START_TAG = "<START>"
@@ -197,116 +306,17 @@ STOP_TAG = "<STOP>"
 EMBEDDING_DIM = 5
 HIDDEN_DIM = 4
 
-# Make up some training data
-# training_data = [(
-#     "我 爱 北 京 天 安 门".split(),
-#     "S S B E B I E".split()
-# ), (
-#     "今 天 天 气 怎 么 样".split(),
-#     "B E B E B I E".split()
-# )]
-training_data = read_train_data("E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8")[0:100]
-print(training_data[0][1])
 word_to_ix = {}
-for sentence, tags in training_data:
-    for word in sentence:
-        if word not in word_to_ix:
-            word_to_ix[word] = len(word_to_ix)
-
 tag_to_ix = {"B": 0, "I": 1, "E": 2, START_TAG: 3, STOP_TAG: 4, "S": 5}
+ix_to_tag = {0: "B", 1: "I", 2: "E", 3: START_TAG, 4: STOP_TAG, 5: "S"}
+model = None
 
-model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
-optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
+golds = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+examples = [ele.strip() for ele in examples]
+golds = [ele.strip() for ele in golds]
 
-# Check predictions before training
-with torch.no_grad():
-    precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-    precheck_tags = torch.tensor([tag_to_ix[t] for t in training_data[0][1]], dtype=torch.long)
-    print(model(precheck_sent))
-start = time.time()
-# Make sure prepare_sequence from earlier in the LSTM section is loaded
-for epoch in range(
-        10):  # again, normally you would NOT do 300 epochs, it is toy data
-    print("epoch", epoch)
-    for sentence, tags in training_data:
-        # Step 1. Remember that Pytorch accumulates gradients.
-        # We need to clear them out before each instance
-        model.zero_grad()
-
-        # Step 2. Get our inputs ready for the network, that is,
-        # turn them into Tensors of word indices.
-        sentence_in = prepare_sequence(sentence, word_to_ix)
-        targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
-
-        # Step 3. Run our forward pass.
-        loss = model.neg_log_likelihood(sentence_in, targets)
-
-        # Step 4. Compute the loss, gradients, and update the parameters by
-        # calling optimizer.step()
-        loss.backward()
-        optimizer.step()
-end = time.time()
-print("time:",(end - start)/60, "min")
-# Check predictions after training
-with torch.no_grad():
-    precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-    print(model(precheck_sent))
-# We got it!
-
-# START_TAG = "<START>"
-# STOP_TAG = "<STOP>"
-# EMBEDDING_DIM = 5
-# HIDDEN_DIM = 4
-#
-# # Make up some training data
-# training_data = [(
-#     "the wall street journal reported today that apple corporation made money".split(),
-#     "B I I I O O O B I O O".split()
-# ), (
-#     "georgia tech is a university in georgia".split(),
-#     "B I O O O O B".split()
-# )]
-#
-# word_to_ix = {}
-# for sentence, tags in training_data:
-#     for word in sentence:
-#         if word not in word_to_ix:
-#             word_to_ix[word] = len(word_to_ix)
-#
-# tag_to_ix = {"B": 0, "I": 1, "O": 2, START_TAG: 3, STOP_TAG: 4}
-#
-# model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
-# optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
-#
-# # Check predictions before training
-# with torch.no_grad():
-#     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-#     precheck_tags = torch.tensor([tag_to_ix[t] for t in training_data[0][1]], dtype=torch.long)
-#     print(model(precheck_sent))
-#
-# # Make sure prepare_sequence from earlier in the LSTM section is loaded
-# for epoch in range(
-#         300):  # again, normally you would NOT do 300 epochs, it is toy data
-#     for sentence, tags in training_data:
-#         # Step 1. Remember that Pytorch accumulates gradients.
-#         # We need to clear them out before each instance
-#         model.zero_grad()
-#
-#         # Step 2. Get our inputs ready for the network, that is,
-#         # turn them into Tensors of word indices.
-#         sentence_in = prepare_sequence(sentence, word_to_ix)
-#         targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
-#
-#         # Step 3. Run our forward pass.
-#         loss = model.neg_log_likelihood(sentence_in, targets)
-#
-#         # Step 4. Compute the loss, gradients, and update the parameters by
-#         # calling optimizer.step()
-#         loss.backward()
-#         optimizer.step()
-#
-# # Check predictions after training
-# with torch.no_grad():
-#     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-#     print(model(precheck_sent))
-# # We got it!
+if __name__ == "__main__":
+    train()
+    load_argument()
+    test()

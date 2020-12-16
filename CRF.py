@@ -153,9 +153,9 @@ def train():
     (sentences, references) = read_dataset(TRAIN_DATA1)
     # (sentences, references) = read_dataset(TRAIN_DATA2)
     # 两个dataset一起用
-    (s2, r2) = read_dataset(TRAIN_DATA2)
-    sentences[len(sentences):len(sentences)] = s2
-    references[len(references):len(references)] = r2
+    # (s2, r2) = read_dataset(TRAIN_DATA2)
+    # sentences[len(sentences):len(sentences)] = s2
+    # references[len(references):len(references)] = r2
     assert len(sentences) == len(references), "len(sentences) != len(references)!!"
     train_accs = []
     valid_accs = []
@@ -279,6 +279,7 @@ def load_arguments():
 
 
 if __name__ == "__main__":
+    # 要么train要么load，否则参数没有值
     # load_arguments()
     # print("load successfully")
     init()
