@@ -1,11 +1,13 @@
-# Author: Robert Guthrie
-
 import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.optim as optim
 import time
 import pickle
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 torch.manual_seed(1)
 
@@ -16,8 +18,10 @@ def argmax(vec):
     return idx.item()
 
 
-def prepare_sequence(seq: list, to_ix: dict):
-    idxs = [to_ix[w] for w in seq]
+def prepare_sequence(seq: list, to_ix: dict, unknown_word=0):
+    # idxs = [to_ix[w] for w in seq]
+    # idxs = [to_ix.get(w, len(to_ix)-1) for w in seq]
+    idxs = [to_ix.get(w, unknown_word) for w in seq]
     return torch.tensor(idxs, dtype=torch.long)
 
 
@@ -54,13 +58,14 @@ def read_train_data(path: str) -> [([str], [str])]:
 
 class BiLSTM_CRF(nn.Module):
 
-    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim, unknown_word_ix):
         super(BiLSTM_CRF, self).__init__()
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.vocab_size = vocab_size
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
+        self.unknown_word_ix = unknown_word_ix
 
         self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2,
@@ -194,28 +199,44 @@ class BiLSTM_CRF(nn.Module):
 
 
 def train():
-    training_data = read_train_data(r"E:\大三上\智能系统\LAB2\dataset\dataset1\\train.utf8")[0:100]
-    print(training_data)
+    # for i in range(10):
+    #     word_to_ix[str(i)] = len(word_to_ix)
+    training_data = read_train_data(r"E:\大三上\智能系统\LAB2\dataset\dataset2\train.utf8")
+    t = read_train_data(r"E:\大三上\智能系统\LAB2\dataset\dataset1\train.utf8")
+    training_data[len(training_data):len(training_data)] = t
+    print(len(training_data))
     for sentence, tags in training_data:
         for word in sentence:
+            if word in word_num:
+                word_num[word] += 1
+            else:
+                word_num[word] = 1
             if word not in word_to_ix:
                 word_to_ix[word] = len(word_to_ix)
 
+    # find the word with min number
+    unknown_word_ix = word_to_ix[min(word_num.keys(), key=(lambda k: word_num[k]))]
+    print("word with min number:", min(word_num.keys(), key=(lambda k: word_num[k])))
+
     global model
-    model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
-    optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+    model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM, unknown_word_ix)
+    # optimizer = optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=1e-4)
 
     # Check predictions before training
-    with torch.no_grad():
-        precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-        precheck_tags = torch.tensor([tag_to_ix[t] for t in training_data[0][1]], dtype=torch.long)
-        print(model(precheck_sent))
+    test()
+    # with torch.no_grad():
+    #     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
+    #     precheck_tags = torch.tensor([tag_to_ix[t] for t in training_data[0][1]], dtype=torch.long)
+    #     print(model(precheck_sent))
     start = time.time()
+    losses = []
+    valid_accs = []
     # Make sure prepare_sequence from earlier in the LSTM section is loaded
     for epoch in range(
-            10):  # again, normally you would NOT do 300 epochs, it is toy data
+            1):
         print("epoch", epoch)
-        test()
+        i = 0
         for sentence, tags in training_data:
             # Step 1. Remember that Pytorch accumulates gradients.
             # We need to clear them out before each instance
@@ -233,15 +254,32 @@ def train():
             # calling optimizer.step()
             loss.backward()
             optimizer.step()
+
+            i += 1
+            if i % 1000 == 0:
+                losses.append(loss)
+                valid_accs.append(test())
+
     end = time.time()
     print("time:", (end - start) / 60, "min")
+    xx = np.linspace(0, len(losses) - 1, len(losses))
+    plt.xlabel("epoch")
+    plt.ylabel("train result")
+    plt.title("LSTM")
+    plt.plot(xx, losses, label="loss")
+    plt.legend()
+    plt.show()
+    plt.plot(xx, valid_accs, label="valid_accs")
+    plt.show()
     # Check predictions after training
-    test()
-    with torch.no_grad():
-        precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
-        print(model(precheck_sent))
+    # test()
+    # with torch.no_grad():
+    #     precheck_sent = prepare_sequence(training_data[0][0], word_to_ix)
+    #     print(model(precheck_sent))
     # We got it!
+    print(model)
     save_argument()
+    print('save successfully')
 
 
 def save_argument():
@@ -267,7 +305,7 @@ def load_argument():
 def predict(sentence: str) -> str:
     sent_list = list(sentence)
     with torch.no_grad():
-        precheck_sent = prepare_sequence(sent_list, word_to_ix)
+        precheck_sent = prepare_sequence(sent_list, word_to_ix, model.unknown_word_ix)
         _, tag_list = model(precheck_sent)
     tag_str = "".join([ix_to_tag[tag_ix] for tag_ix in tag_list])
     return tag_str
@@ -280,10 +318,10 @@ def test() -> float:
         outputs = predict(examples[i])
         corr += sum([1 if a == b else 0 for a, b in zip(golds[i], outputs)])
         total += len(outputs)
-        print("given:")
-        print(segment(examples[i], golds[i]))
-        print("predict:")
-        print(segment(examples[i], outputs))
+        # print("given:")
+        # print(segment(examples[i], golds[i]))
+        # print("predict:")
+        # print(segment(examples[i], outputs))
     # sen = "我爱北京天安门"
     # pre = predict(sen)
     # corr += sum([1 if a == b else 0 for a, b in zip("SSBEBIE", pre)])
@@ -303,20 +341,27 @@ def segment(obs:str, states:str) -> str:
 
 START_TAG = "<START>"
 STOP_TAG = "<STOP>"
-EMBEDDING_DIM = 5
-HIDDEN_DIM = 4
+EMBEDDING_DIM = 300
+HIDDEN_DIM = 300
 
 word_to_ix = {}
+word_num = {}
 tag_to_ix = {"B": 0, "I": 1, "E": 2, START_TAG: 3, STOP_TAG: 4, "S": 5}
 ix_to_tag = {0: "B", 1: "I", 2: "E", 3: START_TAG, 4: STOP_TAG, 5: "S"}
 model = None
 
-examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
-golds = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+# examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
+# golds = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+examples = open(r"D:\Downloads\icwb2-data\my_test\input.utf8", encoding="utf8").readlines()[100:200]
+golds = open(r"D:\Downloads\icwb2-data\my_test\gold.utf8", encoding="utf8").readlines()[100:200]
+
 examples = [ele.strip() for ele in examples]
 golds = [ele.strip() for ele in golds]
 
 if __name__ == "__main__":
     train()
     load_argument()
-    test()
+    # print("load successfully")
+    # print(model)
+    print(test())
+

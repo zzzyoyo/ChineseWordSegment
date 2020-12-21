@@ -282,12 +282,15 @@ if __name__ == "__main__":
     # 要么train要么load，否则参数没有值
     # load_arguments()
     # print("load successfully")
-    init()
-    train()
-    test()
-    save_arguments()
-    print("save successfully")
+    # init()
+    # train()
+    # test()
+    # save_arguments()
+    # print("save successfully")
     # load_arguments()
     # print("load successfully")
     # test()
+    s, l = read_dataset(TRAIN_DATA1)
+    for i in range(len(s)):
+        print(segment(s[i], l[i]))
 
