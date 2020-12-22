@@ -14,8 +14,10 @@ bigram_template = []
 state_list = []
 weights_dic = {}
 epochs = 5
-examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
-golds = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+# examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
+# golds = open("E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+examples = open(r"D:\Downloads\icwb2-data\my_test\RenMinData_input.utf8", encoding="utf8").readlines()[100:300]
+golds = open(r"D:\Downloads\icwb2-data\my_test\RenMinData_gold.utf8", encoding="utf8").readlines()[100:300]
 examples = [ele.strip() for ele in examples]
 golds = [ele.strip() for ele in golds]
 
@@ -237,10 +239,10 @@ def test()->float:
         outputs = viterbi(examples[i])
         corr += sum([1 if a == b else 0 for a, b in zip(golds[i], outputs)])
         total += len(outputs)
-        print("given:")
-        print(segment(examples[i], golds[i]))
-        print("predict:")
-        print(segment(examples[i], outputs))
+        # print("given:")
+        # print(segment(examples[i], golds[i]))
+        # print("predict:")
+        # print(segment(examples[i], outputs))
     return corr/total
 
 
@@ -264,23 +266,23 @@ def load_arguments():
     global bigram_template
     global state_list
     global weights_dic
-    f = open(r"E:\源程序\PycharmProjects\lab2\unigram_template.txt", 'r')
+    f = open(r"E:\大三上\智能系统\LAB2\lab2_submission\wordseg\CRF argument\unigram_template.txt", 'r')
     unigram_template = eval(f.read())
     f.close()
-    f = open(r"E:\源程序\PycharmProjects\lab2\bigram_template.txt", 'r')
+    f = open(r"E:\大三上\智能系统\LAB2\lab2_submission\wordseg\CRF argument\bigram_template.txt", 'r')
     bigram_template = eval(f.read())
     f.close()
-    f = open(r"E:\源程序\PycharmProjects\lab2\state_list.txt", 'r')
+    f = open(r"E:\大三上\智能系统\LAB2\lab2_submission\wordseg\CRF argument\state_list.txt", 'r')
     state_list = eval(f.read())
     f.close()
-    f = open(r"E:\源程序\PycharmProjects\lab2\weights_dic.txt", 'r')
+    f = open(r"E:\大三上\智能系统\LAB2\lab2_submission\wordseg\CRF argument\weights_dic.txt", 'r')
     weights_dic = eval(f.read())
     f.close()
 
 
 if __name__ == "__main__":
     # 要么train要么load，否则参数没有值
-    # load_arguments()
+    load_arguments()
     # print("load successfully")
     # init()
     # train()
@@ -289,8 +291,8 @@ if __name__ == "__main__":
     # print("save successfully")
     # load_arguments()
     # print("load successfully")
-    # test()
-    s, l = read_dataset(TRAIN_DATA1)
-    for i in range(len(s)):
-        print(segment(s[i], l[i]))
+    print(test())
+    # s, l = read_dataset(TRAIN_DATA1)
+    # for i in range(len(s)):
+    #     print(segment(s[i], l[i]))
 

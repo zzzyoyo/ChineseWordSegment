@@ -350,16 +350,16 @@ tag_to_ix = {"B": 0, "I": 1, "E": 2, START_TAG: 3, STOP_TAG: 4, "S": 5}
 ix_to_tag = {0: "B", 1: "I", 2: "E", 3: START_TAG, 4: STOP_TAG, 5: "S"}
 model = None
 
-# examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
-# golds = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
-examples = open(r"D:\Downloads\icwb2-data\my_test\input.utf8", encoding="utf8").readlines()[100:200]
-golds = open(r"D:\Downloads\icwb2-data\my_test\gold.utf8", encoding="utf8").readlines()[100:200]
+examples = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\input.utf8", encoding="utf8").readlines()
+golds = open(r"E:\大三上\智能系统\LAB2\lab2_submission\example_dataset\gold.utf8", encoding="utf8").readlines()
+# examples = open(r"D:\Downloads\icwb2-data\my_test\input.utf8", encoding="utf8").readlines()[100:300]
+# golds = open(r"D:\Downloads\icwb2-data\my_test\gold.utf8", encoding="utf8").readlines()[100:300]
 
 examples = [ele.strip() for ele in examples]
 golds = [ele.strip() for ele in golds]
 
 if __name__ == "__main__":
-    train()
+    # train()
     load_argument()
     # print("load successfully")
     # print(model)
